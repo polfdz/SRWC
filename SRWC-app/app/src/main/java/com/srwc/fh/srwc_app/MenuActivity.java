@@ -19,6 +19,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.IOException;
@@ -39,13 +40,15 @@ public class MenuActivity extends AppCompatActivity  implements NfcAdapter.Creat
     private PendingIntent mNfcPendingIntent;
     private Tag mTag;
 
-    private Button mBtnWrite;
+    private Button btnChange;
     private ListView mLvLog;
-    private EditText tName;
+    private TextView tName;
+    private EditText tNameChange;
     private String name1 = "", name2 = null;
     private List<String> mLogList = new ArrayList<String>();
     private ArrayAdapter<String> mLogAdapter;
     private boolean beamed = false;
+    private int state = 0;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -60,12 +63,14 @@ public class MenuActivity extends AppCompatActivity  implements NfcAdapter.Creat
                                     }
         );
 
-        mBtnWrite = (Button) findViewById(R.id.btnWrite);
+        btnChange = (Button) findViewById(R.id.btnChange);
         mLvLog = (ListView) findViewById(R.id.lvLog);
         mLogAdapter = new ArrayAdapter<String>(this,
                 android.R.layout.simple_list_item_1, mLogList);
         mLvLog.setAdapter(mLogAdapter);
-        tName = (EditText) findViewById(R.id.tName);
+
+        tName = (TextView) findViewById(R.id.tName);
+        tNameChange = (EditText) findViewById(R.id.tNameChange);
 
         mNfcAdapter = NfcAdapter.getDefaultAdapter(this);
         if (mNfcAdapter == null) {
@@ -80,10 +85,10 @@ public class MenuActivity extends AppCompatActivity  implements NfcAdapter.Creat
         }
         mNfcPendingIntent = PendingIntent.getActivity(this, 0, new Intent(this, this.getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),0);
 
-        mBtnWrite.setOnClickListener(new View.OnClickListener() {
+        btnChange.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                writeName();
+                changeName();
             }
         });
 
@@ -101,15 +106,21 @@ public class MenuActivity extends AppCompatActivity  implements NfcAdapter.Creat
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
-        beamed = true;
 
-        if(beamed == true && name2 != null){
-            Toast.makeText(this, "PAIR", Toast.LENGTH_LONG)
-                    .show();
-            Intent connected = new Intent(this, MainActivity.class);
-            startActivity(connected);
-        }
-        //mNfcAdapter.setNdefPushMessage(createNdefMessage(null), this);
+        Toast.makeText(this, "onINTENT!", Toast.LENGTH_LONG)
+                .show();
+        beamed = true;
+    }
+
+    @Override
+    public NdefMessage createNdefMessage(NfcEvent event) {
+        /*String text = "Hello from " + android.os.Build.MODEL
+                + " at " + DateFormat.getDateTimeInstance().format(new Date()) +""+tName.getText().toString();*/
+        String text = "" + tName.getText().toString();
+        NdefMessage msg = new NdefMessage(
+                new NdefRecord[]{NdefRecord.createMime(MIME_TYPE, text.getBytes())}
+        );
+        return msg;
     }
 
     public void log(String msg) {
@@ -118,58 +129,21 @@ public class MenuActivity extends AppCompatActivity  implements NfcAdapter.Creat
         mLvLog.setSelection(mLogAdapter.getCount() - 1);
     }
 
-    private void writeName(){
+    private void changeName(){
+        if(state == 0){
+            state = 1;
+            tNameChange.setVisibility(View.VISIBLE);
+            tNameChange.setText(tName.getText().toString());
+            tName.setVisibility(View.GONE);
+            btnChange.setText("Save");
+        }else{
+            state = 0;
+            tName.setVisibility(View.VISIBLE);
+            tName.setText(tNameChange.getText().toString());
+            tNameChange.setVisibility(View.GONE);;
+            btnChange.setText("Change");
+        }
         name1 = tName.getText().toString();
-    }
-
-    private void writeTag() {
-        //enter here edittext
-        /*String text = "This tag was written by " + android.os.Build.MODEL
-                + " at " + DateFormat.getDateTimeInstance().format(new Date());*/
-        String text = tName.getText().toString();
-        String[] textarray = text.split(",");
-        NdefRecord[] records = new NdefRecord[textarray.length];
-        for(int i = 0; i < textarray.length; i++) {
-            records[i] = NdefRecord.createMime(MIME_TYPE, textarray[i].getBytes());
-        }
-        NdefMessage msg = new NdefMessage(records);
-        if(mTag != null){ //check if there's a tag
-            Ndef ndef = Ndef.get(mTag); //msg to overide
-
-            if(ndef != null){ //previous msg
-                try {
-                    ndef.connect(); //connect with the card
-                    ndef.writeNdefMessage(msg);
-                    //ndef.writeNdefMessage(msg2);
-
-                    ndef.close();
-                    log("Write successful");
-                } catch (FormatException e) {
-                    e.printStackTrace();
-                    log("Wrong format");
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    log("Tag missing");
-                }
-            }else{
-                NdefFormatable format = NdefFormatable.get(mTag);
-
-                try {
-                    format.connect();
-                    format.format(msg);
-                    format.close();
-                    log("Format + Write successful");
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    log("Tag missing");
-                } catch (FormatException e) {
-                    e.printStackTrace();
-                    log("Wrong format");
-                }
-            }
-        } else{
-            log("Please read a tag first.");
-        }
     }
 
     @Override
@@ -195,9 +169,10 @@ public class MenuActivity extends AppCompatActivity  implements NfcAdapter.Creat
                         name2 = new String(record.getPayload());
                     }
                 }
+
+                Toast.makeText(this, "onRESUME!", Toast.LENGTH_LONG).show();
+
                 if(beamed == true && name2 != null){
-                    Toast.makeText(this, "PAIR", Toast.LENGTH_LONG)
-                            .show();
                     Intent connected = new Intent(this, MainActivity.class);
                     startActivity(connected);
                 }
@@ -207,14 +182,5 @@ public class MenuActivity extends AppCompatActivity  implements NfcAdapter.Creat
         }
     }
 
-    @Override
-    public NdefMessage createNdefMessage(NfcEvent event) {
-        /*String text = "Hello from " + android.os.Build.MODEL
-                + " at " + DateFormat.getDateTimeInstance().format(new Date()) +""+tName.getText().toString();*/
-        String text = "" + tName.getText().toString();
-        NdefMessage msg = new NdefMessage(
-                new NdefRecord[]{NdefRecord.createMime(MIME_TYPE, text.getBytes())}
-        );
-        return msg;
-    }
+
 }
