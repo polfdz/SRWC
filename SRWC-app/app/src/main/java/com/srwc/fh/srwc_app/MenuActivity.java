@@ -3,17 +3,16 @@ package com.srwc.fh.srwc_app;
 import android.app.PendingIntent;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.nfc.FormatException;
 import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
 import android.nfc.NfcEvent;
 import android.nfc.Tag;
-import android.nfc.tech.Ndef;
-import android.nfc.tech.NdefFormatable;
 import android.os.Bundle;
 import android.os.Parcelable;
+import android.os.PersistableBundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -22,10 +21,10 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.io.IOException;
-import java.text.DateFormat;
+import com.srwc.fh.srwc_app.bluetooth.BluetoothController;
+import com.srwc.fh.srwc_app.bluetooth.ConnectionReceiver;
+
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 /**
@@ -49,10 +48,17 @@ public class MenuActivity extends AppCompatActivity  implements NfcAdapter.Creat
     private ArrayAdapter<String> mLogAdapter;
     private boolean beamed = false;
     private int state = 0;
+
+    private String mMacAddress;
+    private BluetoothController mBtController;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_menu);
+
+        mMacAddress = BluetoothAddressManager.getBluetoothAddress(getApplicationContext());
+        //mMacAddress = "c0:ee:fb:03:1b:a6";
 
         Button btnClear = (Button) findViewById(R.id.btnClearLog);
         btnClear.setOnClickListener(new View.OnClickListener() {
@@ -94,7 +100,28 @@ public class MenuActivity extends AppCompatActivity  implements NfcAdapter.Creat
 
         mNfcAdapter.setNdefPushMessageCallback(this, this);
         mNfcAdapter.setNdefPushMessage(createNdefMessage(null), this);
+
+        BluetoothController.getInstance().registerConnectionReceiver(new ConnectionReceiver() {
+            @Override
+            public void connectionReceived(String _otherName) {
+                Intent connected = new Intent(getApplicationContext(), MainActivity.class);
+                connected.putExtra("NAME", _otherName);
+                startActivity(connected);
+            }
+        });
+
+        //mMacAddress = android.provider.Settings.Secure.getString(getContentResolver(), "bluetooth_address");
+        //mMacAddress = "c0:ee:fb:03:1b:7e".toUpperCase();
     }
+
+    /*
+    @Override
+    public void onPostCreate(Bundle savedInstanceState, PersistableBundle persistentState) {
+        super.onPostCreate(savedInstanceState, persistentState);
+
+        BluetoothController.getInstance().setNameMine(name1);
+    }
+    */
 
     @Override
     protected void onPause() {
@@ -116,12 +143,13 @@ public class MenuActivity extends AppCompatActivity  implements NfcAdapter.Creat
     public NdefMessage createNdefMessage(NfcEvent event) {
         /*String text = "Hello from " + android.os.Build.MODEL
                 + " at " + DateFormat.getDateTimeInstance().format(new Date()) +""+tName.getText().toString();*/
-        String text = "" + tName.getText().toString();
-        NdefMessage msg = new NdefMessage(
-                new NdefRecord[]{NdefRecord.createMime(MIME_TYPE, text.getBytes())}
-        );
+        String text = "" + tName.getText().toString() + ";" + mMacAddress;
+        NdefMessage msg = new NdefMessage(new NdefRecord[]{NdefRecord.createMime(MIME_TYPE, text.getBytes())});
+
+
         return msg;
     }
+
 
     public void log(String msg) {
         mLogList.add(msg);
@@ -140,7 +168,7 @@ public class MenuActivity extends AppCompatActivity  implements NfcAdapter.Creat
             state = 0;
             tName.setVisibility(View.VISIBLE);
             tName.setText(tNameChange.getText().toString());
-            tNameChange.setVisibility(View.GONE);;
+            tNameChange.setVisibility(View.GONE);
             btnChange.setText("Change");
         }
         name1 = tName.getText().toString();
@@ -159,21 +187,28 @@ public class MenuActivity extends AppCompatActivity  implements NfcAdapter.Creat
             mTag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
             Parcelable[] messages = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
 
+            String otherMacAddress = "";
             if(messages != null){
                 //log("Found" + messages.length + " NDEF messages");
                 for(int i = 0; i < messages.length; i++){
                     NdefMessage msg = (NdefMessage) messages[i];
                     for(NdefRecord record: msg.getRecords()){
+                        String payload = new String(record.getPayload());
                         log("User1: " + tName.getText() + "\n User2 " + new String(record.getPayload()));
+                        Log.i("NFC", "User1: " + tName.getText() + "\n User2 " + new String(record.getPayload()));
+                        otherMacAddress = payload.split(";")[1];
                         name1 = tName.getText().toString();
-                        name2 = new String(record.getPayload());
+                        name2 = payload.split(";")[0];
                     }
                 }
 
                 Toast.makeText(this, "onRESUME!", Toast.LENGTH_LONG).show();
 
                 if(beamed == true && name2 != null){
+                    BluetoothController.getInstance().setNameMine(name1);
                     Intent connected = new Intent(this, MainActivity.class);
+                    connected.putExtra("MAC_ADDRESS", otherMacAddress);
+                    connected.putExtra("NAME", name2);
                     startActivity(connected);
                 }
             }else{
