@@ -11,6 +11,7 @@
     tools:context=".MenuActivity"
     android:background="#0674bb">
 
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -63,12 +64,12 @@
             android:src="@drawable/nfc_background"
             android:layout_weight="5" />
 
-        <Button
+        <!--Button
             android:id="@+id/btnClearLog"
             android:layout_width="wrap_content"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:text="Clear Log" />
+            android:text="Clear Log" /> !-->
 
         <ListView
             android:id="@+id/lvLog"
@@ -76,5 +77,14 @@
             android:layout_height="0dp"
             android:layout_weight="1"></ListView>
     </LinearLayout>
+
+    <ProgressBar
+        android:id="@+id/pCircle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:indeterminate="true"
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
+        android:visibility="gone"/>
 
 </RelativeLayout>

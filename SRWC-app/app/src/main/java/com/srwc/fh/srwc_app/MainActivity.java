@@ -1,5 +1,6 @@
 package com.srwc.fh.srwc_app;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -115,4 +116,11 @@ public class MainActivity extends AppCompatActivity {
 
         return super.onOptionsItemSelected(item);
     }
+
+    /*@Override
+    public void onBackPressed() {
+        Intent backIntent = new Intent(this, MenuActivity.class);
+        startActivity(backIntent);
+        finish();
+    }*/
 }

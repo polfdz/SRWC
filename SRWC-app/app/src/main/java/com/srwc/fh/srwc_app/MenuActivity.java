@@ -1,8 +1,11 @@
 package com.srwc.fh.srwc_app;
 
+import android.app.Activity;
 import android.app.PendingIntent;
+import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
@@ -18,6 +21,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -34,6 +38,7 @@ import java.util.List;
 public class MenuActivity extends AppCompatActivity  implements NfcAdapter.CreateNdefMessageCallback {
 
     private final static String MIME_TYPE = "application/vnd.at.fh-ooe.srwc";
+    private static final int REQUEST_ENABLE_BT  = 2;
 
     private NfcAdapter mNfcAdapter;
     private PendingIntent mNfcPendingIntent;
@@ -43,6 +48,7 @@ public class MenuActivity extends AppCompatActivity  implements NfcAdapter.Creat
     private ListView mLvLog;
     private TextView tName;
     private EditText tNameChange;
+    private ProgressBar pCircle;
     private String name1 = "", name2 = null;
     private List<String> mLogList = new ArrayList<String>();
     private ArrayAdapter<String> mLogAdapter;
@@ -51,6 +57,10 @@ public class MenuActivity extends AppCompatActivity  implements NfcAdapter.Creat
 
     private String mMacAddress;
     private BluetoothController mBtController;
+    private BluetoothAdapter mBtAdapter;
+
+    SharedPreferences sp;
+    SharedPreferences.Editor editor;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,23 +70,34 @@ public class MenuActivity extends AppCompatActivity  implements NfcAdapter.Creat
         mMacAddress = BluetoothAddressManager.getBluetoothAddress(getApplicationContext());
         //mMacAddress = "c0:ee:fb:03:1b:a6";
 
-        Button btnClear = (Button) findViewById(R.id.btnClearLog);
+        /*Button btnClear = (Button) findViewById(R.id.btnClearLog);
         btnClear.setOnClickListener(new View.OnClickListener() {
                                         @Override
                                         public void onClick(View view) {
                                             mLogAdapter.clear();
                                         }
                                     }
-        );
+        );*/
+        sp = getSharedPreferences("name", Activity.MODE_PRIVATE);
+        editor = sp.edit();
 
         btnChange = (Button) findViewById(R.id.btnChange);
         mLvLog = (ListView) findViewById(R.id.lvLog);
         mLogAdapter = new ArrayAdapter<String>(this,
                 android.R.layout.simple_list_item_1, mLogList);
         mLvLog.setAdapter(mLogAdapter);
-
+        pCircle = (ProgressBar) findViewById(R.id.pCircle);
+        pCircle.setVisibility(View.GONE);
         tName = (TextView) findViewById(R.id.tName);
         tNameChange = (EditText) findViewById(R.id.tNameChange);
+        name1 = sp.getString("name", "");
+        if(name1 != ""){
+            tName.setText(name1);
+            tNameChange.setText(name1);
+        }else{
+            tName.setText("User1");
+            tNameChange.setText("User1");
+        }
 
         mNfcAdapter = NfcAdapter.getDefaultAdapter(this);
         if (mNfcAdapter == null) {
@@ -100,6 +121,31 @@ public class MenuActivity extends AppCompatActivity  implements NfcAdapter.Creat
 
         mNfcAdapter.setNdefPushMessageCallback(this, this);
         mNfcAdapter.setNdefPushMessage(createNdefMessage(null), this);
+
+        //Check bluetooth connected
+        mBtAdapter = BluetoothAdapter.getDefaultAdapter();
+
+        //check if there's blueooth on the device
+        if(mBtAdapter == null){
+            Toast.makeText(this, "Bluetooth is not available", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }else{
+            int btState = mBtAdapter.getState();
+
+            if(btState == BluetoothAdapter.STATE_OFF){
+                Toast.makeText(this, "Bluetooth is off", Toast.LENGTH_SHORT).show();
+                if(!mBtAdapter.isEnabled()){
+                    Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                    startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+                }
+            }/*else if(btState == BluetoothAdapter.STATE_ON){
+                initializeBluetooth();
+            }*/
+        }
+
+
+
 
         BluetoothController.getInstance().registerConnectionReceiver(new ConnectionReceiver() {
             @Override
@@ -134,8 +180,8 @@ public class MenuActivity extends AppCompatActivity  implements NfcAdapter.Creat
         super.onNewIntent(intent);
         setIntent(intent);
 
-        Toast.makeText(this, "onINTENT!", Toast.LENGTH_LONG)
-                .show();
+       /*Toast.makeText(this, "onINTENT!", Toast.LENGTH_LONG)
+                .show();*/
         beamed = true;
     }
 
@@ -146,7 +192,7 @@ public class MenuActivity extends AppCompatActivity  implements NfcAdapter.Creat
         String text = "" + tName.getText().toString() + ";" + mMacAddress;
         NdefMessage msg = new NdefMessage(new NdefRecord[]{NdefRecord.createMime(MIME_TYPE, text.getBytes())});
 
-
+        pCircle.setVisibility(View.VISIBLE);
         return msg;
     }
 
@@ -172,6 +218,8 @@ public class MenuActivity extends AppCompatActivity  implements NfcAdapter.Creat
             btnChange.setText("Change");
         }
         name1 = tName.getText().toString();
+        editor.putString("name", name1);
+        editor.commit();
     }
 
     @Override
@@ -202,7 +250,7 @@ public class MenuActivity extends AppCompatActivity  implements NfcAdapter.Creat
                     }
                 }
 
-                Toast.makeText(this, "onRESUME!", Toast.LENGTH_LONG).show();
+                //Toast.makeText(this, "onRESUME!", Toast.LENGTH_LONG).show();
 
                 if(beamed == true && name2 != null){
                     BluetoothController.getInstance().setNameMine(name1);
@@ -216,6 +264,4 @@ public class MenuActivity extends AppCompatActivity  implements NfcAdapter.Creat
             }
         }
     }
-
-
 }
