@@ -192,7 +192,6 @@ public class MenuActivity extends AppCompatActivity  implements NfcAdapter.Creat
         String text = "" + tName.getText().toString() + ";" + mMacAddress;
         NdefMessage msg = new NdefMessage(new NdefRecord[]{NdefRecord.createMime(MIME_TYPE, text.getBytes())});
 
-        pCircle.setVisibility(View.VISIBLE);
         return msg;
     }
 
@@ -247,6 +246,7 @@ public class MenuActivity extends AppCompatActivity  implements NfcAdapter.Creat
                         otherMacAddress = payload.split(";")[1];
                         name1 = tName.getText().toString();
                         name2 = payload.split(";")[0];
+                        pCircle.setVisibility(View.VISIBLE);
                     }
                 }
 
