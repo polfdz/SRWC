@@ -1,11 +1,19 @@
 package com.srwc.fh.srwc_app;
 
 import android.content.Intent;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
+import android.util.Base64;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -25,18 +33,25 @@ import com.peak.salut.SalutServiceData;
 import com.srwc.fh.srwc_app.bluetooth.BluetoothController;
 import com.srwc.fh.srwc_app.bluetooth.MessageReceiver;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+
+import static android.os.Environment.getExternalStoragePublicDirectory;
 
 public class MainActivity extends AppCompatActivity implements SalutDataCallback {
 
     private RecyclerView mRecyclerView;
     private Button mButtonSend, mButtonWD;
     private EditText mEditTextMessage;
-    private ImageView mImageView;
     private BluetoothController mBtController;
     private ChatMessageAdapter mAdapter;
     private String mOtherMacAddress;
+    private ImageView mImageView;
+    private ImageView ivImage; //recived image testing
 
     private Salut network;
     public SalutDataReceiver dataReceiver;
@@ -82,6 +97,7 @@ public class MainActivity extends AppCompatActivity implements SalutDataCallback
 
         mEditTextMessage = (EditText) findViewById(R.id.et_message);
         mImageView = (ImageView) findViewById(R.id.iv_image);
+        ivImage = (ImageView) findViewById(R.id.ivImage);
 
         mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
@@ -163,9 +179,13 @@ public class MainActivity extends AppCompatActivity implements SalutDataCallback
                 @Override
                 public void call(SalutDevice salutDevice) {
                     Log.d("HOST", salutDevice.readableName + " has connected!");
-                    Message myMessage = new Message();
-                    myMessage.description = "See you on the other side!";
 
+                    //GetImageString to be sent
+                    String encImage = getImageStringToSend();
+                    Message myMessage = new Message();
+                    myMessage.description = encImage;//myMessage.description = "See you on the other side!";
+
+                    //method to send myMessage to Connected Client:
                     network.sendToDevice(salutDevice, myMessage, new SalutCallback() {
                         @Override
                         public void call() {
@@ -173,6 +193,7 @@ public class MainActivity extends AppCompatActivity implements SalutDataCallback
                         }
                     });
 
+                    //method to send myMessage to Connected Host:
                    /* network.sendToHost(myMessage, new SalutCallback() {
                         @Override
                         public void call() {
@@ -224,13 +245,47 @@ public class MainActivity extends AppCompatActivity implements SalutDataCallback
         try
         {
             Message newMessage = LoganSquare.parse(String.valueOf(data), Message.class);
-            Log.d("DATA", newMessage.description);  //See you on the other side!
-            //Do other stuff with data.
+            Bitmap imageRecived = decodeDataBitmap(newMessage.description);
+            ivImage.setImageBitmap(imageRecived);
+            Log.d("DATAEncodedRecived", newMessage.description);  //See you on the other side!
+            Log.d("DATADecodedRecived", imageRecived.toString());  //See you on the other side!
+            //Do other stuff with data
         }
         catch (IOException ex)
         {
             Log.e("FAILED", "Failed to parse network data.");
         }
+    }
+    //encode image from path to string
+    public String getImageStringToSend(){
+        //Path of the image
+        String dcim = getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).getAbsolutePath();
+        Log.d("PIC", dcim.toString());
+        String encImage = "";
+        if (dcim != null) {
+            String filepath = dcim+"/Camera/foto.jpg";//listFiles(); //CURRENT IMAGE TO SEND
+            Log.d("PIC2", filepath.toString());
+            File imagefile = new File(filepath);
+            FileInputStream fis = null;
+            try {
+                fis = new FileInputStream(imagefile);
+                Log.d("PATH", "YES");
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+            Bitmap bm = BitmapFactory.decodeStream(fis);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            bm.compress(Bitmap.CompressFormat.JPEG, 100 , baos);
+            byte[] b = baos.toByteArray();
+            encImage = Base64.encodeToString(b, Base64.DEFAULT);
+            Log.d("IMG", encImage);
+        }
+        return encImage;
+    }
+    //decode string to bitmap
+    public Bitmap decodeDataBitmap(String message){
+        byte[] decodedString = Base64.decode(message, Base64.DEFAULT);
+        return BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
     }
 
     @Override
@@ -242,6 +297,7 @@ public class MainActivity extends AppCompatActivity implements SalutDataCallback
         /*else
             network.unregisterClient(null);*/
     }
+
 
     /*@Override
     public void onBackPressed() {

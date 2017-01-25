@@ -6,20 +6,26 @@ import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.media.Image;
 import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
 import android.nfc.NfcEvent;
 import android.nfc.Tag;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Parcelable;
 import android.os.PersistableBundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Base64;
 import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -28,8 +34,14 @@ import android.widget.Toast;
 import com.srwc.fh.srwc_app.bluetooth.BluetoothController;
 import com.srwc.fh.srwc_app.bluetooth.ConnectionReceiver;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
+
+import static android.os.Environment.getExternalStoragePublicDirectory;
 
 /**
  * Created by Pol on 13/01/2017.
@@ -54,7 +66,6 @@ public class MenuActivity extends AppCompatActivity  implements NfcAdapter.Creat
     private ArrayAdapter<String> mLogAdapter;
     private boolean beamed = false;
     private int state = 0;
-
     private String mMacAddress;
     private BluetoothController mBtController;
     private BluetoothAdapter mBtAdapter;
@@ -98,7 +109,6 @@ public class MenuActivity extends AppCompatActivity  implements NfcAdapter.Creat
             tName.setText("User1");
             tNameChange.setText("User1");
         }
-
         mNfcAdapter = NfcAdapter.getDefaultAdapter(this);
         if (mNfcAdapter == null) {
             Toast.makeText(this, "NFC is not available!", Toast.LENGTH_LONG)
@@ -158,6 +168,7 @@ public class MenuActivity extends AppCompatActivity  implements NfcAdapter.Creat
 
         //mMacAddress = android.provider.Settings.Secure.getString(getContentResolver(), "bluetooth_address");
         //mMacAddress = "c0:ee:fb:03:1b:7e".toUpperCase();
+
     }
 
     /*
