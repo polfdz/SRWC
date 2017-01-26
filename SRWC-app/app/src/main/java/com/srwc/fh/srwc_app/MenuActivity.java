@@ -102,12 +102,13 @@ public class MenuActivity extends AppCompatActivity  implements NfcAdapter.Creat
         tName = (TextView) findViewById(R.id.tName);
         tNameChange = (EditText) findViewById(R.id.tNameChange);
         name1 = sp.getString("name", "");
+
         if(name1 != ""){
             tName.setText(name1);
             tNameChange.setText(name1);
         }else{
-            tName.setText("User1");
-            tNameChange.setText("User1");
+            tName.setText("User");
+            tNameChange.setText("User");
         }
         mNfcAdapter = NfcAdapter.getDefaultAdapter(this);
         if (mNfcAdapter == null) {

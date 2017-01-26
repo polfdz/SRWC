@@ -28,7 +28,7 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1.5"
-            android:text="User1"
+                android:hint="your name"
             android:id="@+id/tName"
                 android:textAppearance="@style/TextAppearance.AppCompat.Large.Inverse"
                 android:fontFamily="sans-serif"

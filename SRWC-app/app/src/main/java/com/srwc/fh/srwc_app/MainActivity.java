@@ -277,7 +277,11 @@ public class MainActivity extends AppCompatActivity implements SalutDataCallback
         myMessage.description = _imageString;//myMessage.description = "See you on the other side!";
 
         //method to send myMessage to Connected Client:
-        network.sendToDevice(network.registeredHost, myMessage, new SalutCallback() {
+
+        if (!network.isRunningAsHost) {
+            device = network.registeredHost;
+        }
+        network.sendToDevice(device, myMessage, new SalutCallback() {
             @Override
             public void call() {
                 Log.e("FAILED", "Oh no! The data failed to send.");
