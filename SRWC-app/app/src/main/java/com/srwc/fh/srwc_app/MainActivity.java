@@ -169,6 +169,7 @@ public class MainActivity extends AppCompatActivity implements SalutDataCallback
     {
         if(!network.isRunningAsHost)
         {
+
             network.startNetworkService(new SalutDeviceCallback() {
                 @Override
                 public void call(SalutDevice salutDevice) {
@@ -202,7 +203,6 @@ public class MainActivity extends AppCompatActivity implements SalutDataCallback
                 @Override
                 public void call() {
                     Log.d("Device: ",network.foundDevices.get(0).instanceName + " found.");
-                    device = network.foundDevices.get(0);
                     network.registerWithHost(network.foundDevices.get(0), new SalutCallback() {
                         @Override
                         public void call() {
@@ -214,6 +214,7 @@ public class MainActivity extends AppCompatActivity implements SalutDataCallback
                             Log.d("CALL", "We failed to register.");
                         }
                     });
+                    device = network.registeredHost;
                 }
             }, true);
         }
@@ -231,7 +232,7 @@ public class MainActivity extends AppCompatActivity implements SalutDataCallback
         myMessage.description = encImage;//myMessage.description = "See you on the other side!";
 
         //method to send myMessage to Connected Client:
-        network.sendToDevice(device, myMessage, new SalutCallback() {
+        network.sendToDevice(network.registeredHost, myMessage, new SalutCallback() {
             @Override
             public void call() {
                 Log.e("FAILED", "Oh no! The data failed to send.");
