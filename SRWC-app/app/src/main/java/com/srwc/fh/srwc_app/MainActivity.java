@@ -1,5 +1,6 @@
 package com.srwc.fh.srwc_app;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -38,6 +39,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 
 import static android.os.Environment.getExternalStoragePublicDirectory;
@@ -121,13 +123,57 @@ public class MainActivity extends AppCompatActivity implements SalutDataCallback
         mImageView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Log.e("click image", "CLICK IMAGE POL");
-                sendImage();
+
+                Intent intent = new Intent();
+                intent.setType("image/*");
+                intent.setAction(Intent.ACTION_GET_CONTENT);
+                startActivityForResult(Intent.createChooser(intent, "Select Picture"), 0);
             }
         });
 
         if (mOtherMacAddress != null) {
             mBtController.start(mOtherMacAddress);
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 0 && resultCode == Activity.RESULT_OK) {
+            if (data == null) {
+                Log.i("Image", "data is null");
+            } else {
+                Log.i("Image", data.toString());
+                try {
+                    InputStream inputStream = getContentResolver().openInputStream(data.getData());
+                    Bitmap bm = BitmapFactory.decodeStream(inputStream);
+
+                    Bitmap scaledBitmap;
+                    double ratio;
+                    int imageSize = 700;
+                    if (bm.getWidth() > bm.getHeight()) {
+                        ratio = (double)bm.getWidth() / (double)bm.getHeight();
+                        Log.i("ratio", ratio + "");
+                        scaledBitmap = Bitmap.createScaledBitmap(bm, imageSize, (int) (imageSize / ratio), true);
+                    } else {
+                        ratio = (double)bm.getHeight() / (double)bm.getWidth();
+                        Log.i("ratio", ratio + "");
+                        scaledBitmap = Bitmap.createScaledBitmap(bm, (int) (imageSize / ratio), imageSize, true);
+                    }
+
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos);
+                    byte[] b = baos.toByteArray();
+                    String encImage = Base64.encodeToString(b, Base64.DEFAULT);
+
+
+                    Log.e("click image", "CLICK IMAGE POL");
+                    sendImage(encImage);
+
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 
@@ -161,7 +207,6 @@ public class MainActivity extends AppCompatActivity implements SalutDataCallback
             discoverServices();
             return true;
         }
-
         return super.onOptionsItemSelected(item);
     }
 
@@ -224,11 +269,11 @@ public class MainActivity extends AppCompatActivity implements SalutDataCallback
         }
     }
 
-    private void sendImage() {
+    private void sendImage(String _imageString) {
         //GetImageString to be sent
         String encImage = getImageStringToSend();
         Message myMessage = new Message();
-        myMessage.description = encImage;//myMessage.description = "See you on the other side!";
+        myMessage.description = _imageString;//myMessage.description = "See you on the other side!";
 
         //method to send myMessage to Connected Client:
         network.sendToDevice(device, myMessage, new SalutCallback() {
@@ -238,7 +283,7 @@ public class MainActivity extends AppCompatActivity implements SalutDataCallback
             }
         });
 
-        addMessage(encImage, true, true);
+        addMessage(_imageString, true, true);
     }
 
     @Override
