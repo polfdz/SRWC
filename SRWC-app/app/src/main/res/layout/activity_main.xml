@@ -40,21 +40,15 @@
             android:layout_weight="1"
             android:inputType="text" />
 
-        <Button
-            android:id="@+id/btn_send"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Send" />
-        <Button
-            android:id="@+id/btn_wifi"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="WD" />
         <ImageView
-            android:id="@+id/ivImage"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@drawable/ic_launcher"/>
+            android:id="@+id/iv_send"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:alpha=".5"
+            android:background="?selectableItemBackground"
+            android:contentDescription="@string/app_name"
+            android:padding="2dp"
+            android:src="@drawable/ic_send" />
     </LinearLayout>
 
 </RelativeLayout>

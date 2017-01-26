@@ -45,19 +45,18 @@ import static android.os.Environment.getExternalStoragePublicDirectory;
 public class MainActivity extends AppCompatActivity implements SalutDataCallback {
 
     private RecyclerView mRecyclerView;
-    private Button mButtonSend, mButtonWD;
     private EditText mEditTextMessage;
     private BluetoothController mBtController;
     private ChatMessageAdapter mAdapter;
     private String mOtherMacAddress;
-    private ImageView mImageView;
-    private ImageView ivImage; //recived image testing
+    private ImageView mButtonSend, mImageView;
 
     private Salut network;
     public SalutDataReceiver dataReceiver;
     public SalutServiceData serviceData;
-    private  SalutDevice device = null;
+    private SalutDevice device = null;
     SalutDataCallback callback;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,7 +75,7 @@ public class MainActivity extends AppCompatActivity implements SalutDataCallback
         mBtController.registerMessageReceiver(new MessageReceiver() {
             @Override
             public void messageReceived(String _msg) {
-                addMessage(_msg, false);
+                addMessage(_msg, false, false);
             }
         });
 
@@ -92,12 +91,10 @@ public class MainActivity extends AppCompatActivity implements SalutDataCallback
         });
 
         mRecyclerView = (RecyclerView) findViewById(R.id.recyclerView);
-        mButtonSend = (Button) findViewById(R.id.btn_send);
-        mButtonWD = (Button) findViewById(R.id.btn_wifi);
+        mButtonSend = (ImageView) findViewById(R.id.iv_send);
 
         mEditTextMessage = (EditText) findViewById(R.id.et_message);
         mImageView = (ImageView) findViewById(R.id.iv_image);
-        ivImage = (ImageView) findViewById(R.id.ivImage);
 
         mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
@@ -116,7 +113,7 @@ public class MainActivity extends AppCompatActivity implements SalutDataCallback
                 }
                 //sendMessage(message);
                 mBtController.sendMessage(message);
-                addMessage(message, true);
+                addMessage(message, true, false);
                 mEditTextMessage.setText("");
             }
         });
@@ -125,26 +122,17 @@ public class MainActivity extends AppCompatActivity implements SalutDataCallback
             @Override
             public void onClick(View v) {
                 Log.e("click image", "CLICK IMAGE POL");
-                setupNetwork();
+                sendImage();
             }
         });
 
         if (mOtherMacAddress != null) {
             mBtController.start(mOtherMacAddress);
         }
-
-        //look for devices WIFI DIRECT
-        mButtonWD.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Log.e("WifiDirect", "Connect To Host WD");
-                discoverServices();
-            }
-        });
     }
 
-    private void addMessage(String _message, boolean _isMine) {
-        ChatMessage chatMessage = new ChatMessage(_message, _isMine, false);
+    private void addMessage(String _message, boolean _isMine, boolean _isImage) {
+        ChatMessage chatMessage = new ChatMessage(_message, _isMine, _isImage);
         mAdapter.add(chatMessage);
         mRecyclerView.scrollToPosition(mAdapter.getItemCount() - 1);
     }
@@ -164,7 +152,13 @@ public class MainActivity extends AppCompatActivity implements SalutDataCallback
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
+        if (id == R.id.action_host) {
+            Log.i("WifiDirect", "Host created");
+            setupNetwork();
+            return true;
+        } else if (id == R.id.action_client) {
+            Log.i("WifiDirect", "Connect To Host WD");
+            discoverServices();
             return true;
         }
 
@@ -180,19 +174,7 @@ public class MainActivity extends AppCompatActivity implements SalutDataCallback
                 public void call(SalutDevice salutDevice) {
                     Log.d("HOST", salutDevice.readableName + " has connected!");
 
-                    //GetImageString to be sent
-                    String encImage = getImageStringToSend();
-                    Message myMessage = new Message();
-                    myMessage.description = encImage;//myMessage.description = "See you on the other side!";
-
-                    //method to send myMessage to Connected Client:
-                    network.sendToDevice(salutDevice, myMessage, new SalutCallback() {
-                        @Override
-                        public void call() {
-                            Log.e("FAILED", "Oh no! The data failed to send.");
-                        }
-                    });
-
+                    device = salutDevice;
                     //method to send myMessage to Connected Host:
                    /* network.sendToHost(myMessage, new SalutCallback() {
                         @Override
@@ -206,6 +188,7 @@ public class MainActivity extends AppCompatActivity implements SalutDataCallback
         else
         {
             network.stopNetworkService(false);
+            device = null;
         }
     }
 
@@ -219,6 +202,7 @@ public class MainActivity extends AppCompatActivity implements SalutDataCallback
                 @Override
                 public void call() {
                     Log.d("Device: ",network.foundDevices.get(0).instanceName + " found.");
+                    device = network.foundDevices.get(0);
                     network.registerWithHost(network.foundDevices.get(0), new SalutCallback() {
                         @Override
                         public void call() {
@@ -236,7 +220,25 @@ public class MainActivity extends AppCompatActivity implements SalutDataCallback
         else
         {
             network.stopServiceDiscovery(true);
+            device = null;
         }
+    }
+
+    private void sendImage() {
+        //GetImageString to be sent
+        String encImage = getImageStringToSend();
+        Message myMessage = new Message();
+        myMessage.description = encImage;//myMessage.description = "See you on the other side!";
+
+        //method to send myMessage to Connected Client:
+        network.sendToDevice(device, myMessage, new SalutCallback() {
+            @Override
+            public void call() {
+                Log.e("FAILED", "Oh no! The data failed to send.");
+            }
+        });
+
+        addMessage(encImage, true, true);
     }
 
     @Override
@@ -245,11 +247,13 @@ public class MainActivity extends AppCompatActivity implements SalutDataCallback
         try
         {
             Message newMessage = LoganSquare.parse(String.valueOf(data), Message.class);
-            Bitmap imageRecived = decodeDataBitmap(newMessage.description);
-            ivImage.setImageBitmap(imageRecived);
+            //Bitmap imageRecived = decodeDataBitmap(newMessage.description);
+            //ivImage.setImageBitmap(imageRecived);
             Log.d("DATAEncodedRecived", newMessage.description);  //See you on the other side!
-            Log.d("DATADecodedRecived", imageRecived.toString());  //See you on the other side!
+            //Log.d("DATADecodedRecived", imageRecived.toString());  //See you on the other side!
             //Do other stuff with data
+
+            addMessage(newMessage.description, false, true);
         }
         catch (IOException ex)
         {
@@ -263,17 +267,9 @@ public class MainActivity extends AppCompatActivity implements SalutDataCallback
         Log.d("PIC", dcim.toString());
         String encImage = "";
         if (dcim != null) {
-            String filepath = dcim+"/Camera/foto.jpg";//listFiles(); //CURRENT IMAGE TO SEND
-            Log.d("PIC2", filepath.toString());
-            File imagefile = new File(filepath);
-            FileInputStream fis = null;
-            try {
-                fis = new FileInputStream(imagefile);
-                Log.d("PATH", "YES");
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            }
-            Bitmap bm = BitmapFactory.decodeStream(fis);
+
+            //Bitmap bm = BitmapFactory.decodeStream(fis);
+            Bitmap bm = BitmapFactory.decodeResource(getResources(), R.drawable.img_sample);
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             bm.compress(Bitmap.CompressFormat.JPEG, 100 , baos);
             byte[] b = baos.toByteArray();

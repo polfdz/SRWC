@@ -1,7 +1,10 @@
 package com.srwc.fh.srwc_app;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.support.v7.widget.RecyclerView;
+import android.util.Base64;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -62,7 +65,7 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
             holder.ivImage.setVisibility(View.VISIBLE);
             holder.tvMessage.setVisibility(View.GONE);
 
-            holder.ivImage.setImageResource(R.drawable.img_sample);
+            holder.ivImage.setImageBitmap(decodeDataBitmap(chatMessage.getContent()));
         } else {
             holder.ivImage.setVisibility(View.GONE);
             holder.tvMessage.setVisibility(View.VISIBLE);
@@ -74,6 +77,12 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
         holder.tvTime.setText(date);
 
 
+    }
+
+    //decode string to bitmap
+    private Bitmap decodeDataBitmap(String message){
+        byte[] decodedString = Base64.decode(message, Base64.DEFAULT);
+        return BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
     }
 
     class MessageHolder extends RecyclerView.ViewHolder {
